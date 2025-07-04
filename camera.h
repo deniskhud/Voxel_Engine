@@ -78,9 +78,9 @@ public:
         if (direction == RIGHT)
             position += right * velocity;
         if (direction == UP)
-            position += up.y * velocity;
+            position += worldUp * velocity;
         if (direction == DOWN)
-            position -= up.y * velocity;
+            position -= worldUp * velocity;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
