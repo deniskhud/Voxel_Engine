@@ -100,7 +100,9 @@ int main()
     Shader ourShader("vertex.vs", "fragment.fs");
     Block block;
     block.init();
-    block.setTexture("textures/grass.jpg", ourShader);
+    block.setTextureSide("textures/grass.jpg", ourShader);
+    block.setTextureBot("textures/grass_low.jpg", ourShader);
+    block.setTextureTop("textures/grass_top.jpg", ourShader);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -123,7 +125,7 @@ int main()
 
         ourShader.use();
 
-        block.bindTexture();
+        block.bindTexture(ourShader);
 
         // create transformations
         glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
