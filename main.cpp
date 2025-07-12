@@ -3,6 +3,8 @@
 
 #include "stb_image.h"
 
+#include "chunk.h"
+#include "chunk.cpp"
 #include "shader.h"
 #include "camera.h"
 #include "block.h"
@@ -98,11 +100,16 @@ int main()
     // build and compile our shader zprogram
     // ------------------------------------
     Shader ourShader("vertex.vs", "fragment.fs");
-    Block block;
+    /*Block block;
     block.init();
     block.setTextureSide("textures/grass.jpg", ourShader);
     block.setTextureBot("textures/grass_low.jpg", ourShader);
-    block.setTextureTop("textures/grass_top.jpg", ourShader);
+    block.setTextureTop("textures/grass_top.jpg", ourShader);*/
+
+    Chunk chunk;
+    chunk.coord = {0,0,0};
+    chunk.generateTypes();   // заполнили dirt
+    chunk.generateMesh();    // создали VBO
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -125,7 +132,7 @@ int main()
 
         ourShader.use();
 
-        block.bindTexture(ourShader);
+        //block.bindTexture(ourShader);
 
         // create transformations
         glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
@@ -142,10 +149,11 @@ int main()
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
         // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+        chunk.draw();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
-        block.draw();
+        //block.draw();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -156,7 +164,7 @@ int main()
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
 
-    block.destroy();
+    //block.destroy();
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
