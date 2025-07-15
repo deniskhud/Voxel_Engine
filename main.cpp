@@ -1,20 +1,52 @@
 #include "glad/include/glad/glad.h"
 #include <GLFW/glfw3.h>
 
-#include "stb_image.h"
+#include "block.h"
 
-#include "chunk.h"
-#include "chunk.cpp"
 #include "shader.h"
 #include "camera.h"
-#include "block.h"
 #include <filesystem>
 #include <iostream>
+
+#include "world.h"
+
 
 #include "glm-1.0.1/glm/glm.hpp"
 #include "glm-1.0.1/glm/gtc/matrix_transform.hpp"
 #include "glm-1.0.1/glm/gtc/type_ptr.hpp"
+GLuint textureSide = 0;
+void setTexture(const std::string& path, Shader& ourShader) {
+    glGenTextures(1, &textureSide);
+    glBindTexture(GL_TEXTURE_2D, textureSide); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+    ourShader.setInt("texture1", 0);
+    // set the texture wrapping parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // load image, create texture and generate mipmaps
+    int width, height, nrChannels;
 
+
+    //reverse the image
+    stbi_set_flip_vertically_on_load(true);
+    // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
+    unsigned char *data = stbi_load(std::filesystem::path(path).c_str(), &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    ourShader.use();
+    ourShader.setInt("texture1", 0);
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -100,16 +132,11 @@ int main()
     // build and compile our shader zprogram
     // ------------------------------------
     Shader ourShader("vertex.vs", "fragment.fs");
-    /*Block block;
-    block.init();
-    block.setTextureSide("textures/grass.jpg", ourShader);
-    block.setTextureBot("textures/grass_low.jpg", ourShader);
-    block.setTextureTop("textures/grass_top.jpg", ourShader);*/
+    Block::init();
 
-    Chunk chunk;
-    chunk.coord = {0,0,0};
-    chunk.generateTypes();   // заполнили dirt
-    chunk.generateMesh();    // создали VBO
+    setTexture("textures/grass.jpg", ourShader);
+
+    World world{};
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -138,24 +165,15 @@ int main()
         glm::mat4 model         = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         glm::mat4 view          = camera.GetViewMatrix();
         glm::mat4 projection    = glm::mat4(1.0f);
-        //model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-        //model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-        //view  = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
         projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         // retrieve the matrix uniform locations
-        unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
-        unsigned int viewLoc  = glGetUniformLocation(ourShader.ID, "view");
-        // pass them to the shaders (3 different ways)
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-        // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-        chunk.draw();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
-        //block.draw();
+        world.setPlayerPosition(glm::vec3(0, 0, 0));
+        world.draw(ourShader);
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -163,9 +181,6 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-
-    //block.destroy();
-
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
     glfwTerminate();
@@ -179,7 +194,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    float cameraSpeed = 2.5f * deltaTime;
+    float cameraSpeed = 5.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -192,6 +207,8 @@ void processInput(GLFWwindow *window)
         camera.ProcessKeyboard(UP, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         camera.ProcessKeyboard(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        camera.ProcessKeyboard(CTRL, deltaTime * 2);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
