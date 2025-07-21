@@ -1,7 +1,7 @@
 #include "world.h"
 
 World::World() {
-	for (int i = 0; i <= 64; ++i) {
+	for (int i = 0; i <= 10; ++i) {
 		addChunk(i);
 	}
 }
@@ -14,6 +14,7 @@ World::~World() {
 
 void World::addChunk(int x) {
 	chunks[x] = new Chunk();
+
 }
 
 void World::deleteChunk(int x) {

@@ -6,6 +6,7 @@ layout (location = 3) in vec4 offset;
 
 out vec2 TexCoord;
 out vec3 FragmentPos;
+out float BlockID;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -16,8 +17,12 @@ const float texSize = 1.f;
 void main()
 {
     FragmentPos = vec3(model * vec4(aPos, 1.0));
+    BlockID = offset.w;
 	gl_Position = projection * view * model * vec4(aPos + offset.xyz, 1.0);
-	int blockID = int(offset.w);
 
-	TexCoord = vec2(aTexCoord.x + (blockID % 16) * texSize, aTexCoord.y + (blockID % 16) * texSize);
+    TexCoord = aTexCoord;
+	//TexCoord = vec2(aTexCoord.x + (blockID % 16) * texSize, aTexCoord.y + (blockID % 16) * texSize);
+
+    vec3 off = offset.xyz;
+
 }

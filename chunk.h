@@ -12,9 +12,9 @@
 #include "block.h"
 #include "shader.h"
 
-const short CHUNK_X = 255;
+const short CHUNK_X = 16;
 const short CHUNK_Y = 255;
-const short CHUNK_Z = 255;
+const short CHUNK_Z = 16;
 
 
 class Chunk {
@@ -30,7 +30,7 @@ private:
 	GLuint VBO, blockVAO, blockVBO;
 	std::vector<glm::vec4> translations;
 
-	std::array<std::array<std::array<std::uint8_t, CHUNK_X>, CHUNK_Y>, CHUNK_Z> chunkData;
+	std::array<std::array<std::array<std::uint8_t, CHUNK_Z>, CHUNK_Y>, CHUNK_X> chunkData;
 
 	void setupVisibleBlocks();
 };

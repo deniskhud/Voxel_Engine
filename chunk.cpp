@@ -12,12 +12,16 @@ Chunk::Chunk() {
 				else if (y == 64) {
 					chunkData[x][y][z] = 1; //grass
 				}
-				else {
-					chunkData[x][y][z] = 2; //dirt
+				else if (y < 64 && y >= 30) {
+					chunkData[x][y][z] = 2;	//dirt
+				}
+				else if (y < 30){
+					chunkData[x][y][z] = 3; //stone
 				}
 			}
 		}
 	}
+
 	setupVisibleBlocks();
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -60,13 +64,13 @@ Chunk::~Chunk() {
 
 void Chunk::setupVisibleBlocks() {
 	bool flag = true;
-	for (int x = 0; x < 32; ++x) {
-		for (int y = 0; y < 32; ++y) {
-			for (int z = 0; z < 32; ++z) {
+	for (int x = 0; x < CHUNK_X; ++x) {
+		for (int y = 0; y < CHUNK_Y; ++y) {
+			for (int z = 0; z < CHUNK_Z; ++z) {
 				if (chunkData[x][y][z] == 0) {
 					flag = false;
 				}
-				else if (x == 0 || x == 31 || y == 0 || y == 31 || z == 0 || z == 31) {
+				else if (x == 0 || x == 15 || y == 0 || y == 31 || z == 0 || z == 15) {
 					flag = true;
 				}
 				else {

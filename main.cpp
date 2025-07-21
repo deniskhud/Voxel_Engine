@@ -14,6 +14,41 @@
 #include "glm-1.0.1/glm/glm.hpp"
 #include "glm-1.0.1/glm/gtc/matrix_transform.hpp"
 #include "glm-1.0.1/glm/gtc/type_ptr.hpp"
+GLuint loadTextureArray(const std::vector<std::string>& paths) {
+    int width = 0, height = 0, channels = 0;
+    unsigned char* first = stbi_load(paths[0].c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    if (!first) {
+        std::cerr << "Failed to load: " << paths[0] << std::endl;
+        return 0;
+    }
+
+    GLuint texArrayID;
+    glGenTextures(1, &texArrayID);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texArrayID);
+
+    // Выделяем память под все слои
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, paths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    // Кладем каждую текстуру в свой слой
+    for (int i = 0; i < paths.size(); ++i) {
+        unsigned char* data = stbi_load(paths[i].c_str(), &width, &height, &channels, STBI_rgb_alpha);
+        if (!data) {
+            std::cerr << "Failed to load: " << paths[i] << std::endl;
+            continue;
+        }
+
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        stbi_image_free(data);
+    }
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+    return texArrayID;
+}
 GLuint textureSide = 0;
 void setTexture(const std::string& path, Shader& ourShader) {
     glGenTextures(1, &textureSide);
@@ -134,7 +169,15 @@ int main()
     Shader ourShader("vertex.vs", "fragment.fs");
     Block::init();
 
-    setTexture("textures/grass.jpg", ourShader);
+    std::vector<std::string> texturePaths = {
+        "textures/grass_top.jpg",   // blockID = 0
+        "textures/dirt.jpg",    // blockID = 1
+        "textures/stone.jpg",   // blockID = 2
+        //"textures/sand.png"     // blockID = 3
+    };
+    GLuint textureArrayID = loadTextureArray(texturePaths);
+
+    //setTexture("textures/real_stone.jpg", ourShader);
 
     World world{};
 
@@ -158,7 +201,9 @@ int main()
 
 
         ourShader.use();
-
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textureArrayID);
+        ourShader.setInt("texture1", 0);
         //block.bindTexture(ourShader);
 
         // create transformations
