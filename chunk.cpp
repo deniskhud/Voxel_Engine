@@ -6,18 +6,28 @@ Chunk::Chunk() {
 	for (int x = 0; x < CHUNK_X; ++x) {
 		for (int y = 0; y < CHUNK_Y; ++y) {
 			for (int z = 0; z < CHUNK_Z; ++z) {
-				if (y > 64) {
+				if (y > 100) {
 					chunkData[x][y][z] = 0;	//air
 				}
-				else if (y == 64) {
+				else if (y == 100) {
 					chunkData[x][y][z] = 1; //grass
 				}
-				else if (y < 64 && y >= 30) {
+				else if (y < 100 && y >= 90) {
 					chunkData[x][y][z] = 2;	//dirt
 				}
-				else if (y < 30){
+				else if (y < 90){
 					chunkData[x][y][z] = 3; //stone
 				}
+				/*if (y >= 59) {
+					chunkData[x][y][z] = 0;
+				}
+				else if (y < 59 && y >= 50) {
+					chunkData[x][y][z] = 1;
+				}
+				else if (y < 50) {
+					chunkData[x][y][z] = 2;
+				}*/
+
 			}
 		}
 	}

@@ -27,7 +27,7 @@ GLuint loadTextureArray(const std::vector<std::string>& paths) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, texArrayID);
 
     // Выделяем память под все слои
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, paths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, paths.size() + 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     // Кладем каждую текстуру в свой слой
     for (int i = 0; i < paths.size(); ++i) {
@@ -37,7 +37,7 @@ GLuint loadTextureArray(const std::vector<std::string>& paths) {
             continue;
         }
 
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i + 1, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     }
 
@@ -49,39 +49,7 @@ GLuint loadTextureArray(const std::vector<std::string>& paths) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
     return texArrayID;
 }
-GLuint textureSide = 0;
-void setTexture(const std::string& path, Shader& ourShader) {
-    glGenTextures(1, &textureSide);
-    glBindTexture(GL_TEXTURE_2D, textureSide); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-    ourShader.setInt("texture1", 0);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate mipmaps
-    int width, height, nrChannels;
 
-
-    //reverse the image
-    stbi_set_flip_vertically_on_load(true);
-    // The FileSystem::getPath(...) is part of the GitHub repository so we can find files on any IDE/platform; replace it with your own image path.
-    unsigned char *data = stbi_load(std::filesystem::path(path).c_str(), &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    ourShader.use();
-    ourShader.setInt("texture1", 0);
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
