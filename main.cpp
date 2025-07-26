@@ -184,7 +184,7 @@ int main()
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
-        world.setPlayerPosition(glm::vec3(0, 0, 0));
+        world.setPlayerPosition(camera.position);
         world.draw(ourShader);
 
         // -------------------------------------------------------------------------------
