@@ -1,6 +1,11 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+enum class Direction {
+	Front, Back, Left, Right, Top, Bottom
+};
+
+
 #include "glad/include/glad/glad.h"
 #include "glm-1.0.1/glm/glm.hpp"
 #include "stb_image.h"
@@ -9,6 +14,7 @@
 #include <filesystem>
 class Block {
 public:
+	static const float* getFaceVertices(Direction dir);
 
 	static float* vertices;
 	//x , y, z, u, v, nx, ny, nz = 8; 6 edges * 2 triangles * 3 vertex = 36; -> 8 * 36 = 288
@@ -27,10 +33,7 @@ public:
 
 	static bool isColorless(std::uint8_t blockID);
 
-	void setTextureSide(const std::string& path, Shader& ourShader);
-	void setTextureBot(const std::string& path, Shader& ourShader);
-	void setTextureTop(const std::string& path, Shader& ourShader);
-	void bindTexture(Shader& shader);
+
 private:
 
 

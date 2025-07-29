@@ -1,33 +1,39 @@
 #include "chunk.h"
 
 
+inline FastNoiseLite noise;
 
-Chunk::Chunk() {
-	for (int x = 0; x < CHUNK_X; ++x) {
-		for (int y = 0; y < CHUNK_Y; ++y) {
-			for (int z = 0; z < CHUNK_Z; ++z) {
-				if (y > 100) {
-					chunkData[x][y][z] = 0;	//air
-				}
-				else if (y == 100) {
-					chunkData[x][y][z] = 1; //grass
-				}
-				else if (y < 100 && y >= 90) {
-					chunkData[x][y][z] = 2;	//dirt
-				}
-				else if (y < 90){
-					chunkData[x][y][z] = 3; //stone
-				}
-				/*if (y >= 59) {
-					chunkData[x][y][z] = 0;
-				}
-				else if (y < 59 && y >= 50) {
-					chunkData[x][y][z] = 1;
-				}
-				else if (y < 50) {
-					chunkData[x][y][z] = 2;
-				}*/
+static void setupNoise() {
+	noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noise.SetFrequency(0.01f);     // Настройка "размаха" рельефа
+	noise.SetSeed(1322);
+	noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+	noise.SetFractalOctaves(4);
+}
 
+Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) {
+	setupNoise();
+	for (int x = 0; x < CHUNK_X; x++) {
+		for (int z = 0; z < CHUNK_Z; z++) {
+			int worldX = chunkCoordX * CHUNK_X + x;
+			int worldZ = chunkCoordZ * CHUNK_Z + z;
+
+			float noiseVal = noise.GetNoise((float)worldX, (float)worldZ);
+			int height = static_cast<int>(((noiseVal + 1.0f) * 0.5f) * CHUNK_Y);
+
+			for (int y = 0; y < CHUNK_Y; ++y) {
+				if (y > height) {
+					chunkData[x][y][z] = 0; // air
+				}
+				else if (y == height) {
+					chunkData[x][y][z] = 1; // grass
+				}
+				else if (y > height - 4) {
+					chunkData[x][y][z] = 2; // dirt
+				}
+				else {
+					chunkData[x][y][z] = 3; // stone
+				}
 			}
 		}
 	}

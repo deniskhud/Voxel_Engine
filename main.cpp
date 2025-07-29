@@ -94,6 +94,26 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
 
+void showFPS(GLFWwindow* window) {
+    static double lastTime = glfwGetTime();
+    static int frames = 0;
+
+    double currentTime = glfwGetTime();
+    double dt = currentTime - lastTime;
+
+    ++frames;
+
+    if (dt >= 1.0f) {
+        double fps = frames / dt;
+
+        std::string title = "FPS: " + std::to_string(static_cast<int>(fps));
+        glfwSetWindowTitle(window, title.c_str());
+
+        frames = 0;
+        lastTime = currentTime;
+    }
+}
+
 int main()
 {
     // glfw: initialize and configure
@@ -136,7 +156,7 @@ int main()
     // ------------------------------------
     Shader ourShader("vertex.vs", "fragment.fs");
     Block::init();
-
+    int faceTypeLoc = glGetUniformLocation(ourShader.ID, "faceType");
     std::vector<std::string> texturePaths = {
         "textures/grass_top.jpg",   // blockID = 0
         "textures/dirt.jpg",    // blockID = 1
@@ -155,7 +175,7 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
-
+        showFPS(window);
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
@@ -164,14 +184,14 @@ int main()
         processInput(window);
 
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.529f, 0.808f, 0.922f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
         ourShader.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D_ARRAY, textureArrayID);
-        ourShader.setInt("texture1", 0);
+        ourShader.setInt("textureArray", 0);
         //block.bindTexture(ourShader);
 
         // create transformations
@@ -184,6 +204,7 @@ int main()
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
+        glUniform1i(faceTypeLoc, 1);
         world.setPlayerPosition(camera.position);
         world.draw(ourShader);
 

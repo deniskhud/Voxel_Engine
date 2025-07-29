@@ -20,6 +20,7 @@ void main()
     BlockID = offset.w;
 	gl_Position = projection * view * model * vec4(aPos + offset.xyz, 1.0);
 
+    //TexCoord = vec2(0.5); // фиксированная текстура (или 0.0)
     TexCoord = aTexCoord;
 	//TexCoord = vec2(aTexCoord.x + (blockID % 16) * texSize, aTexCoord.y + (blockID % 16) * texSize);
 

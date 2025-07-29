@@ -1,18 +1,25 @@
 #include "world.h"
 
 World::World() {
+	//renderThread = std::thread(&World::threadFunc, this);
 	int startX = 0;
 	int startZ = 0;
-	int size = 10; // или renderDistance
 
-	for (int x = startX; x <= size; ++x) {
-		for (int z = startZ; z <= size; ++z) {
+
+	for (int x = startX; x <= renderDistance; ++x) {
+		for (int z = startZ; z <= renderDistance; ++z) {
 			addChunk(x, z);
 		}
 	}
 }
 
 World::~World() {
+	/*{
+		std::unique_lock<std::mutex> lock(mtx);
+		cv.notify_all();
+	}
+	renderThread.join();*/
+
 	for (auto& [key, value] : chunks) {
 		delete value; // освободить память
 	}
@@ -20,7 +27,9 @@ World::~World() {
 }
 
 void World::addChunk(int x, int z) {
-	chunks[{x, z}] = new Chunk();
+	//std::unique_lock<std::mutex> lock(mtx);
+	chunks[{x, z}] = new Chunk(x, z);
+	cv.notify_one();
 
 }
 
@@ -30,6 +39,7 @@ void World::deleteChunk(int x, int z) {
 }
 
 void World::draw(Shader &shader) {
+	//std::unique_lock<std::mutex> lock(mtx);
 	for (auto& [key, chunk] : chunks) {
 		glm::vec3 pos = glm::vec3(key.first * 16, 0.f, key.second * 16);
 		chunk->draw(shader, pos);
@@ -45,7 +55,7 @@ void World::setPlayerPosition(glm::vec3 pos) {
 	static std::pair<int,int> lastChunk = {9999,9999};
 	if (lastChunk.first != currentChunkX || lastChunk.second != currentChunkZ) {
 		// Создаем чанки вокруг игрока
-		int renderDistance = 5;
+
 		for (int x = currentChunkX - renderDistance; x <= currentChunkX + renderDistance; ++x) {
 			for (int z = currentChunkZ - renderDistance; z <= currentChunkZ + renderDistance; ++z) {
 				if (chunks.find({x,z}) == chunks.end()) {
@@ -69,3 +79,27 @@ void World::setPlayerPosition(glm::vec3 pos) {
 		lastChunk = {currentChunkX, currentChunkZ};
 	}
 }
+
+void World::threadFunc() {
+	while (true) {
+		std::pair<int, int> pos;
+
+		{
+			//std::unique_lock<std::mutex> lock(mtx);
+			//cv.wait(lock, [&]() { return !chunks.empty() || !running; });
+
+			if (!running) {
+				return;
+			}
+
+			pos = chunks.begin()->first;
+			chunks.erase(chunks.begin());
+		}
+
+		Chunk* chunk = new Chunk(pos.first, pos.second);
+
+		//std::lock_guard<std::mutex> lock(mtx);
+		chunks[pos] = chunk;
+	}
+}
+

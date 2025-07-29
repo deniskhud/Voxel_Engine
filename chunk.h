@@ -11,6 +11,7 @@
 #include <GLFW/glfw3.h>
 #include "block.h"
 #include "shader.h"
+#include "fastNoiseLite.h"
 
 const short CHUNK_X = 16;
 const short CHUNK_Y = 255;
@@ -19,7 +20,7 @@ const short CHUNK_Z = 16;
 
 class Chunk {
 public:
-	Chunk();
+	Chunk(int chunkX, int chunkZ);
 	~Chunk();
 
 	void draw(Shader& shader, glm::vec3 worldLocation);
@@ -31,6 +32,8 @@ private:
 	std::vector<glm::vec4> translations;
 
 	std::array<std::array<std::array<std::uint8_t, CHUNK_Z>, CHUNK_Y>, CHUNK_X> chunkData;
+
+	int chunkCoordX = 0, chunkCoordZ = 0;
 
 	void setupVisibleBlocks();
 };
