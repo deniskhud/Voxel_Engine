@@ -105,8 +105,11 @@ void showFPS(GLFWwindow* window) {
 
     if (dt >= 1.0f) {
         double fps = frames / dt;
+        std::string posX = "X: " + std::to_string(static_cast<int>(camera.position.x));
+        std::string posY = "Y: " + std::to_string(static_cast<int>(camera.position.y));
+        std::string posZ = "Z: " + std::to_string(static_cast<int>(camera.position.z));
+        std::string title = "FPS: " + std::to_string(static_cast<int>(fps))+ " " + posX + ", " + posY + ", " + posZ;
 
-        std::string title = "FPS: " + std::to_string(static_cast<int>(fps));
         glfwSetWindowTitle(window, title.c_str());
 
         frames = 0;
@@ -150,7 +153,7 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
-    glFrontFace(GL_CCW);
+    //glFrontFace(GL_CCW);
 
     // build and compile our shader zprogram
     // ------------------------------------
@@ -161,7 +164,7 @@ int main()
         "textures/grass_top.jpg",   // blockID = 0
         "textures/dirt.jpg",    // blockID = 1
         "textures/stone.jpg",   // blockID = 2
-        //"textures/sand.png"     // blockID = 3
+        "textures/water.jpg"     // blockID = 3
     };
     GLuint textureArrayID = loadTextureArray(texturePaths);
 
@@ -199,7 +202,7 @@ int main()
         glm::mat4 view          = camera.GetViewMatrix();
         glm::mat4 projection    = glm::mat4(1.0f);
 
-        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
         // retrieve the matrix uniform locations
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);

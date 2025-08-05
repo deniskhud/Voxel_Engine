@@ -4,7 +4,7 @@
 #include "glad/include/glad/glad.h"
 #include "glm-1.0.1/glm/glm.hpp"
 #include "glm-1.0.1/glm/gtc/matrix_transform.hpp"
-
+#include "frustum.cpp"
 //all possible options for camera movement
 enum camera_movement {
     FORWARD,
@@ -19,7 +19,7 @@ enum camera_movement {
 //default values
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
-const float SPEED = 40.5f;
+const float SPEED = 20.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
 
@@ -117,9 +117,6 @@ public:
         if (zoom > 45.0f)
             zoom = 45.0f;
     }
-
-
-
 
 
 private:

@@ -17,6 +17,8 @@ const short CHUNK_X = 16;
 const short CHUNK_Y = 255;
 const short CHUNK_Z = 16;
 
+const short seaLevel = 32;
+
 
 class Chunk {
 public:
@@ -35,7 +37,16 @@ private:
 
 	int chunkCoordX = 0, chunkCoordZ = 0;
 
-	void setupVisibleBlocks();
+	struct vertex {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+		short id;
+	};
+
+	std::vector<vertex> meshVertices;
+
+	void buildMesh();
 };
 
 

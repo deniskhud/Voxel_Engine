@@ -1,10 +1,18 @@
 #include "chunk.h"
 
+const int faceOffsets[6][3] = {
+	{  0,  0, -1 }, // back
+	{  0,  0,  1 }, // front
+	{ -1,  0,  0 }, // left
+	{  1,  0,  0 }, // right
+	{  0, -1,  0 }, // bottom
+	{  0,  1,  0 }  // top
+};
 
 inline FastNoiseLite noise;
 
 static void setupNoise() {
-	noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+	noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
 	noise.SetFrequency(0.01f);     // Настройка "размаха" рельефа
 	noise.SetSeed(1322);
 	noise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -23,7 +31,13 @@ Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) 
 
 			for (int y = 0; y < CHUNK_Y; ++y) {
 				if (y > height) {
-					chunkData[x][y][z] = 0; // air
+					if (y <= 64) {
+						chunkData[x][y][z] = 4;
+					}
+					else {
+						chunkData[x][y][z] = 0; // air
+					}
+
 				}
 				else if (y == height) {
 					chunkData[x][y][z] = 1; // grass
@@ -37,38 +51,31 @@ Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) 
 			}
 		}
 	}
-
-	setupVisibleBlocks();
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * translations.size(), translations.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+	buildMesh();
 	glGenVertexArrays(1, &blockVAO);
 	glGenBuffers(1, &blockVBO);
 
 	glBindVertexArray(blockVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, blockVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * Block::verticesSize, Block::vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, meshVertices.size() * sizeof(vertex), meshVertices.data(), GL_STATIC_DRAW);
 
-	//position
+	// Позиция
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, pos));
 
-	//uv
+	// UV
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, uv));
 
-	//normals
+	// Нормали
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, normal));
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-	glVertexAttribDivisor(3, 1);  // <-- очень важно
+	glVertexAttribPointer(3, 1, GL_SHORT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, id));
 
 	glBindVertexArray(0);
+
 
 	Block::draw();
 }
@@ -78,32 +85,6 @@ Chunk::~Chunk() {
 	glDeleteVertexArrays(1, &blockVAO);
 }
 
-void Chunk::setupVisibleBlocks() {
-	bool flag = true;
-	for (int x = 0; x < CHUNK_X; ++x) {
-		for (int y = 0; y < CHUNK_Y; ++y) {
-			for (int z = 0; z < CHUNK_Z; ++z) {
-				if (chunkData[x][y][z] == 0) {
-					flag = false;
-				}
-				else if (x == 0 || x == 15 || y == 0 || y == 31 || z == 0 || z == 15) {
-					flag = true;
-				}
-				else {
-					flag = ((Block::isColorless(chunkData[x - 1][y][z])) ||
-							(Block::isColorless(chunkData[x + 1][y][z])) ||
-							(Block::isColorless(chunkData[x][y - 1][z])) ||
-							(Block::isColorless(chunkData[x][y + 1][z])) ||
-							(Block::isColorless(chunkData[x][y][z - 1])) ||
-							(Block::isColorless(chunkData[x][y][z + 1])));
-				}
-				if (flag) {
-					translations.push_back(glm::vec4(x, y, z, chunkData[x][y][z]));
-				}
-			}
-		}
-	}
-}
 
 
 void Chunk::draw(Shader &shader, glm::vec3 worldLocation) {
@@ -113,5 +94,61 @@ void Chunk::draw(Shader &shader, glm::vec3 worldLocation) {
 	model = glm::translate(model, worldLocation);
 
 	shader.setMat4("model", model);
-	glDrawArraysInstanced(GL_TRIANGLES, 0,36,  translations.size());
+	glDrawArrays(GL_TRIANGLES, 0, meshVertices.size());
+	glBindVertexArray(0);
+	//glDrawArraysInstanced(GL_TRIANGLES, 0,36,  translations.size());
+}
+
+void Chunk::buildMesh() {
+	meshVertices.clear();
+
+	for (int x = 0; x < CHUNK_X; ++x) {
+		for (int y = 0; y < CHUNK_Y; ++y) {
+			for (int z = 0; z < CHUNK_Z; ++z) {
+				uint8_t blockID = chunkData[x][y][z];
+				if (blockID == 0) continue;
+
+				for (int face = 0; face < 6; ++face) {
+					int nx = x + faceOffsets[face][0];
+					int ny = y + faceOffsets[face][1];
+					int nz = z + faceOffsets[face][2];
+
+					bool neighborTransparent = true;
+
+					if (nx >= 0 && nx < CHUNK_X &&
+						ny >= 0 && ny < CHUNK_Y &&
+						nz >= 0 && nz < CHUNK_Z)
+					{
+						neighborTransparent = Block::isColorless(chunkData[nx][ny][nz]);
+					}
+					if (neighborTransparent) {
+						const int faceStart = face * 6 * 8;
+						for (int v = 0; v < 6; ++v) {
+							int vertexStart = faceStart + v * 8;
+
+							vertex vert;
+							vert.pos = glm::vec3(
+								Block::vertices[vertexStart + 0] + x,
+								Block::vertices[vertexStart + 1] + y,
+								Block::vertices[vertexStart + 2] + z
+							);
+							vert.uv = glm::vec2(
+								Block::vertices[vertexStart + 3],
+								Block::vertices[vertexStart + 4]
+							);
+							vert.normal = glm::vec3(
+								Block::vertices[vertexStart + 5],
+								Block::vertices[vertexStart + 6],
+								Block::vertices[vertexStart + 7]
+							);
+							vert.id = chunkData[x][y][z];
+
+							meshVertices.push_back(vert);
+						}
+					}
+				}
+
+			}
+		}
+	}
 }

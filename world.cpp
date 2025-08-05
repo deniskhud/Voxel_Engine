@@ -1,7 +1,7 @@
 #include "world.h"
 
 World::World() {
-	//renderThread = std::thread(&World::threadFunc, this);
+	renderThread = std::thread(&World::threadFunc, this);
 	int startX = 0;
 	int startZ = 0;
 
@@ -14,11 +14,11 @@ World::World() {
 }
 
 World::~World() {
-	/*{
+	{
 		std::unique_lock<std::mutex> lock(mtx);
 		cv.notify_all();
 	}
-	renderThread.join();*/
+	renderThread.join();
 
 	for (auto& [key, value] : chunks) {
 		delete value; // освободить память
@@ -27,7 +27,7 @@ World::~World() {
 }
 
 void World::addChunk(int x, int z) {
-	//std::unique_lock<std::mutex> lock(mtx);
+	std::unique_lock<std::mutex> lock(mtx);
 	chunks[{x, z}] = new Chunk(x, z);
 	cv.notify_one();
 
@@ -39,7 +39,7 @@ void World::deleteChunk(int x, int z) {
 }
 
 void World::draw(Shader &shader) {
-	//std::unique_lock<std::mutex> lock(mtx);
+	std::unique_lock<std::mutex> lock(mtx);
 	for (auto& [key, chunk] : chunks) {
 		glm::vec3 pos = glm::vec3(key.first * 16, 0.f, key.second * 16);
 		chunk->draw(shader, pos);
@@ -85,8 +85,8 @@ void World::threadFunc() {
 		std::pair<int, int> pos;
 
 		{
-			//std::unique_lock<std::mutex> lock(mtx);
-			//cv.wait(lock, [&]() { return !chunks.empty() || !running; });
+			std::unique_lock<std::mutex> lock(mtx);
+			cv.wait(lock, [&]() { return !chunks.empty() || !running; });
 
 			if (!running) {
 				return;
@@ -98,8 +98,7 @@ void World::threadFunc() {
 
 		Chunk* chunk = new Chunk(pos.first, pos.second);
 
-		//std::lock_guard<std::mutex> lock(mtx);
+		std::lock_guard<std::mutex> lock(mtx);
 		chunks[pos] = chunk;
 	}
 }
-
