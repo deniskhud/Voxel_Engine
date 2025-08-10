@@ -4,7 +4,6 @@
 #include "glad/include/glad/glad.h"
 #include "glm-1.0.1/glm/glm.hpp"
 #include "glm-1.0.1/glm/gtc/matrix_transform.hpp"
-#include "frustum.cpp"
 //all possible options for camera movement
 enum camera_movement {
     FORWARD,
@@ -25,6 +24,8 @@ const float ZOOM = 45.0f;
 
 class Camera {
 public:
+
+
     glm::vec3 position;
     glm::vec3 front;
     glm::vec3 up;

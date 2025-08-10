@@ -7,8 +7,7 @@
 #include "camera.h"
 #include "shader.h"
 #include <unordered_map>
-#include <thread>
-#include <mutex>
+
 
 struct pair_hash {
 	template <class T1, class T2>
@@ -27,7 +26,7 @@ public:
 	void addChunk(int x, int z);
 	void deleteChunk(int x, int z);
 
-	void draw(Shader& shader);
+	void draw(Shader& shader, Camera& camera);
 	void setPlayerPosition(glm::vec3 pos);
 
 
@@ -37,7 +36,8 @@ private:
 	std::unordered_map<std::pair<int, int>, Chunk*, pair_hash> chunks;
 	const int renderDistance = 8;
 
-	std::thread renderThread;
+	std::thread generateThread;
+	std::thread eraseThread;
 
 	std::condition_variable cv;
 	std::mutex mtx;

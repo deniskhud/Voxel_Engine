@@ -1,5 +1,6 @@
 #include "chunk.h"
-
+#include "frustum.h"
+/*** frustum culling ***/
 const int faceOffsets[6][3] = {
 	{  0,  0, -1 }, // back
 	{  0,  0,  1 }, // front
@@ -12,14 +13,14 @@ const int faceOffsets[6][3] = {
 inline FastNoiseLite noise;
 
 static void setupNoise() {
-	noise.SetNoiseType(FastNoiseLite::NoiseType_ValueCubic);
+	noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
 	noise.SetFrequency(0.01f);     // Настройка "размаха" рельефа
 	noise.SetSeed(1322);
 	noise.SetFractalType(FastNoiseLite::FractalType_FBm);
 	noise.SetFractalOctaves(4);
 }
 
-Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) {
+void Chunk::cpuOperations() {
 	setupNoise();
 	for (int x = 0; x < CHUNK_X; x++) {
 		for (int z = 0; z < CHUNK_Z; z++) {
@@ -52,11 +53,18 @@ Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) 
 		}
 	}
 	buildMesh();
+}
+
+Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) {
+
+	cpuOperations();
+
 	glGenVertexArrays(1, &blockVAO);
 	glGenBuffers(1, &blockVBO);
 
 	glBindVertexArray(blockVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, blockVBO);
+
 	glBufferData(GL_ARRAY_BUFFER, meshVertices.size() * sizeof(vertex), meshVertices.data(), GL_STATIC_DRAW);
 
 	// Позиция
@@ -78,6 +86,7 @@ Chunk::Chunk(int chunkX, int chunkZ) : chunkCoordX(chunkX), chunkCoordZ(chunkZ) 
 
 
 	Block::draw();
+
 }
 
 Chunk::~Chunk() {
@@ -87,16 +96,34 @@ Chunk::~Chunk() {
 
 
 
-void Chunk::draw(Shader &shader, glm::vec3 worldLocation) {
+
+
+void Chunk::draw(Shader& shader, glm::vec3 worldLocation, Camera& camera, int& rс) {
+
+	Frustum frustum = createFrustumFromCamera(
+		camera,
+		800.0f / 600.0f,     // соотношение сторон
+		glm::radians(45.0f), // угол обзора в радианах
+		0.1f,  // ближняя плоскость
+		2000.f    // дальняя плоскость
+	);
+
+
+	glm::vec3 min = worldLocation;
+	glm::vec3 max = worldLocation + glm::vec3(CHUNK_X, CHUNK_Y, CHUNK_Z);
+
+
+	if (!frustum.isBoxVisible(min, max)) {
+		return;
+	}
+
+	// Отрисовка
+	shader.use();
+	shader.setMat4("model", glm::translate(glm::mat4(1.0f), worldLocation));
+
 	glBindVertexArray(blockVAO);
-
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::translate(model, worldLocation);
-
-	shader.setMat4("model", model);
-	glDrawArrays(GL_TRIANGLES, 0, meshVertices.size());
-	glBindVertexArray(0);
-	//glDrawArraysInstanced(GL_TRIANGLES, 0,36,  translations.size());
+	glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(meshVertices.size()));
+	rс++;
 }
 
 void Chunk::buildMesh() {

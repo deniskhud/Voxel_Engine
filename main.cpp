@@ -151,9 +151,9 @@ int main()
     }
     //set a depth flag
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
-    //glFrontFace(GL_CCW);
+    glFrontFace(GL_CCW);
 
     // build and compile our shader zprogram
     // ------------------------------------
@@ -209,7 +209,7 @@ int main()
 
         glUniform1i(faceTypeLoc, 1);
         world.setPlayerPosition(camera.position);
-        world.draw(ourShader);
+        world.draw(ourShader, camera);
 
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);

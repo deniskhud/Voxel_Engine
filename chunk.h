@@ -12,6 +12,10 @@
 #include "block.h"
 #include "shader.h"
 #include "fastNoiseLite.h"
+#include <thread>
+#include <mutex>
+#include "camera.h"
+
 
 const short CHUNK_X = 16;
 const short CHUNK_Y = 255;
@@ -25,7 +29,7 @@ public:
 	Chunk(int chunkX, int chunkZ);
 	~Chunk();
 
-	void draw(Shader& shader, glm::vec3 worldLocation);
+	void draw(Shader& shader, glm::vec3 worldLocation, Camera& camera, int& rc);
 
 
 
@@ -37,12 +41,22 @@ private:
 
 	int chunkCoordX = 0, chunkCoordZ = 0;
 
+
+	std::thread cpuThread;
+	std::mutex mtx;
+
+	void cpuOperations();
+
 	struct vertex {
 		glm::vec3 pos;
 		glm::vec3 normal;
 		glm::vec2 uv;
 		short id;
 	};
+
+	float getRight();
+	float getUp();
+	float getForward();
 
 	std::vector<vertex> meshVertices;
 

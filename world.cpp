@@ -1,16 +1,8 @@
 #include "world.h"
 
 World::World() {
-	renderThread = std::thread(&World::threadFunc, this);
-	int startX = 0;
-	int startZ = 0;
 
 
-	for (int x = startX; x <= renderDistance; ++x) {
-		for (int z = startZ; z <= renderDistance; ++z) {
-			addChunk(x, z);
-		}
-	}
 }
 
 World::~World() {
@@ -18,7 +10,7 @@ World::~World() {
 		std::unique_lock<std::mutex> lock(mtx);
 		cv.notify_all();
 	}
-	renderThread.join();
+
 
 	for (auto& [key, value] : chunks) {
 		delete value; // освободить память
@@ -37,13 +29,16 @@ void World::deleteChunk(int x, int z) {
 	delete chunks[{x,z}];
 	chunks.erase({x,z});
 }
-
-void World::draw(Shader &shader) {
+int renderedChunks = 0;
+void World::draw(Shader &shader, Camera &camera) {
 	std::unique_lock<std::mutex> lock(mtx);
 	for (auto& [key, chunk] : chunks) {
 		glm::vec3 pos = glm::vec3(key.first * 16, 0.f, key.second * 16);
-		chunk->draw(shader, pos);
+		chunk->draw(shader, pos, camera, renderedChunks);
 	}
+	std::cout << "chunks: " << chunks.size() << std::endl;
+	std::cout << "renderedChunks: " << renderedChunks << std::endl;
+	renderedChunks = 0;
 }
 
 void World::setPlayerPosition(glm::vec3 pos) {
@@ -77,28 +72,5 @@ void World::setPlayerPosition(glm::vec3 pos) {
 		}
 
 		lastChunk = {currentChunkX, currentChunkZ};
-	}
-}
-
-void World::threadFunc() {
-	while (true) {
-		std::pair<int, int> pos;
-
-		{
-			std::unique_lock<std::mutex> lock(mtx);
-			cv.wait(lock, [&]() { return !chunks.empty() || !running; });
-
-			if (!running) {
-				return;
-			}
-
-			pos = chunks.begin()->first;
-			chunks.erase(chunks.begin());
-		}
-
-		Chunk* chunk = new Chunk(pos.first, pos.second);
-
-		std::lock_guard<std::mutex> lock(mtx);
-		chunks[pos] = chunk;
 	}
 }
