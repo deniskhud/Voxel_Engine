@@ -12,6 +12,21 @@ add_executable(openGL_training
         main.cpp
         shader.h
         glad/include/glad/glad.h
+        camera.h
+        block.h
+        block.h
+        window.h
+        chunk.h
+        chunk.cpp
+        block.cpp
+        world.h
+        world.cpp
+        fastNoiseLite.h
+        frustum.cpp
+        transform.cpp
+        transform.h
+        mesh.h
+        frustum.h
         #stb_image.cpp  # если есть
         #shader.cpp     # если есть
 )

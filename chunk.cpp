@@ -103,7 +103,7 @@ void Chunk::draw(Shader& shader, glm::vec3 worldLocation, Camera& camera, int& r
 	Frustum frustum = createFrustumFromCamera(
 		camera,
 		800.0f / 600.0f,     // соотношение сторон
-		glm::radians(45.0f), // угол обзора в радианах
+		glm::radians(90.0f), // угол обзора в радианах
 		0.1f,  // ближняя плоскость
 		2000.f    // дальняя плоскость
 	);

@@ -202,7 +202,7 @@ int main()
         glm::mat4 view          = camera.GetViewMatrix();
         glm::mat4 projection    = glm::mat4(1.0f);
 
-        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
+        projection = glm::perspective(glm::radians(90.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 2000.0f);
         // retrieve the matrix uniform locations
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
