@@ -15,6 +15,24 @@
 #include <thread>
 #include <mutex>
 #include "camera.h"
+#include <queue>
+
+
+struct vertex {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec2 uv;
+		short id;
+};
+struct ChunkMeshData {
+	std::vector<vertex> vertices;
+	int chunkX;
+	int chunkZ;
+};
+
+extern std::mutex readyMutex;
+extern std::queue<ChunkMeshData> readyMeshes;
+
 
 
 const short CHUNK_X = 16;
@@ -31,7 +49,8 @@ public:
 
 	void draw(Shader& shader, glm::vec3 worldLocation, Camera& camera, int& rc);
 
-
+	void uploadMeshToGPU(const std::vector<vertex>& verts);
+	void generateAsync();
 
 private:
 	GLuint VBO, blockVAO, blockVBO;
@@ -45,14 +64,17 @@ private:
 	std::thread cpuThread;
 	std::mutex mtx;
 
+
+	void setChunkData();
 	void cpuOperations();
 
-	struct vertex {
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 uv;
-		short id;
-	};
+
+	void buildMesh(std::vector<vertex>& outMesh) const;
+
+
+
+
+
 
 	float getRight();
 	float getUp();

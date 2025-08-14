@@ -8,6 +8,8 @@
 #include "shader.h"
 #include <unordered_map>
 
+#include "threadPool.h"
+
 
 struct pair_hash {
 	template <class T1, class T2>
@@ -20,6 +22,7 @@ struct pair_hash {
 
 class World {
 public:
+	World(ThreadPool& pool) : pool(pool){}
 	World();
 	~World();
 
@@ -29,7 +32,7 @@ public:
 	void draw(Shader& shader, Camera& camera);
 	void setPlayerPosition(glm::vec3 pos);
 
-
+	void update();
 private:
 	glm::vec3 camera_position;
 	//std::unordered_map<int, Chunk*> chunks;
@@ -44,6 +47,8 @@ private:
 
 	bool running = false;
 	void threadFunc();
+
+	ThreadPool& pool;
 };
 
 

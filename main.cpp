@@ -14,6 +14,11 @@
 #include "glm-1.0.1/glm/glm.hpp"
 #include "glm-1.0.1/glm/gtc/matrix_transform.hpp"
 #include "glm-1.0.1/glm/gtc/type_ptr.hpp"
+
+#include "threadPool.h"
+//для задач процессора по созданию чанка
+ThreadPool pool(4);
+
 GLuint loadTextureArray(const std::vector<std::string>& paths) {
     int width = 0, height = 0, channels = 0;
     unsigned char* first = stbi_load(paths[0].c_str(), &width, &height, &channels, STBI_rgb_alpha);
@@ -59,7 +64,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 100.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -125,6 +130,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //msaa
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -149,9 +156,12 @@ int main()
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
+
+    //set a multisample flag
+    glEnable(GL_MULTISAMPLE);
     //set a depth flag
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     glFrontFace(GL_CCW);
 
@@ -170,7 +180,7 @@ int main()
 
     //setTexture("textures/real_stone.jpg", ourShader);
 
-    World world{};
+    World world(pool);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -209,6 +219,7 @@ int main()
 
         glUniform1i(faceTypeLoc, 1);
         world.setPlayerPosition(camera.position);
+        world.update();
         world.draw(ourShader, camera);
 
         // -------------------------------------------------------------------------------

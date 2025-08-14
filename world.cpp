@@ -1,17 +1,11 @@
 #include "world.h"
 
-World::World() {
+/*World::World() {
 
 
-}
+}*/
 
 World::~World() {
-	{
-		std::unique_lock<std::mutex> lock(mtx);
-		cv.notify_all();
-	}
-
-
 	for (auto& [key, value] : chunks) {
 		delete value; // освободить память
 	}
@@ -19,9 +13,12 @@ World::~World() {
 }
 
 void World::addChunk(int x, int z) {
-	std::unique_lock<std::mutex> lock(mtx);
-	chunks[{x, z}] = new Chunk(x, z);
-	cv.notify_one();
+	auto* chunk = new Chunk(x, z);
+	chunks[{x, z}] = chunk;
+
+	pool.enqueue([chunk]() {
+		chunk->generateAsync();
+	});
 
 }
 
@@ -31,7 +28,7 @@ void World::deleteChunk(int x, int z) {
 }
 int renderedChunks = 0;
 void World::draw(Shader &shader, Camera &camera) {
-	std::unique_lock<std::mutex> lock(mtx);
+
 	for (auto& [key, chunk] : chunks) {
 		glm::vec3 pos = glm::vec3(key.first * 16, 0.f, key.second * 16);
 		chunk->draw(shader, pos, camera, renderedChunks);
@@ -72,5 +69,21 @@ void World::setPlayerPosition(glm::vec3 pos) {
 		}
 
 		lastChunk = {currentChunkX, currentChunkZ};
+	}
+}
+
+void World::update() {
+	// Проверяем готовые меши от генерации чанков
+	while (true) {
+		std::lock_guard<std::mutex> lock(readyMutex);
+		if (readyMeshes.empty()) break;
+
+		auto data = std::move(readyMeshes.front());
+		readyMeshes.pop();
+
+		auto it = chunks.find({data.chunkX, data.chunkZ});
+		if (it != chunks.end() && it->second) {
+			it->second->uploadMeshToGPU(data.vertices);
+		}
 	}
 }
