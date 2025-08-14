@@ -37,10 +37,8 @@ private:
 	glm::vec3 camera_position;
 	//std::unordered_map<int, Chunk*> chunks;
 	std::unordered_map<std::pair<int, int>, Chunk*, pair_hash> chunks;
-	const int renderDistance = 8;
+	const int renderDistance = 10;
 
-	std::thread generateThread;
-	std::thread eraseThread;
 
 	std::condition_variable cv;
 	std::mutex mtx;

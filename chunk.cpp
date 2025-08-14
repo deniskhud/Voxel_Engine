@@ -1,6 +1,7 @@
 #include "chunk.h"
 #include "frustum.h"
 #include "threadPool.h"
+#include <algorithm>
 extern ThreadPool pool; // глобальный пул потоков
 std::mutex readyMutex;
 std::queue<ChunkMeshData> readyMeshes;
@@ -13,16 +14,38 @@ const int faceOffsets[6][3] = {
     {  0,  1,  0 }  // top
 };
 
-inline FastNoiseLite noise;
 
+inline FastNoiseLite continentNoise;
+inline FastNoiseLite detailNoise;
+inline FastNoiseLite warpNoise;
 static void setupNoiseOnce() {
     static bool initialized = false;
     if (!initialized) {
-        noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-        noise.SetFrequency(0.01f);
-        noise.SetSeed(1322);
-        noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-        noise.SetFractalOctaves(4);
+
+        //большие структуры
+        continentNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+        continentNoise.SetSeed(1322);
+        continentNoise.SetFrequency(0.002f);
+        continentNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        continentNoise.SetFractalOctaves(5);
+        continentNoise.SetFractalGain(0.5f);
+        continentNoise.SetFractalLacunarity(2.0f);
+
+        //холмы и мелкие неровности
+        detailNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+        detailNoise.SetSeed(1323);
+        detailNoise.SetFrequency(0.05f);
+        detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+        detailNoise.SetFractalOctaves(3);
+        detailNoise.SetFractalGain(0.4f);
+
+        //искажение координат
+        warpNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+        warpNoise.SetSeed(1324);
+        warpNoise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
+        warpNoise.SetDomainWarpAmp(30.0f);
+        warpNoise.SetFrequency(0.01f);
+
         initialized = true;
     }
 }
@@ -64,12 +87,27 @@ void Chunk::setChunkData() {
             int worldX = chunkCoordX * CHUNK_X + x;
             int worldZ = chunkCoordZ * CHUNK_Z + z;
 
-            float noiseVal = noise.GetNoise((float)worldX, (float)worldZ);
-            int height = static_cast<int>(((noiseVal + 1.0f) * 0.5f) * CHUNK_Y);
+            //float noiseVal = noise.GetNoise((float)worldX, (float)worldZ);
+            //int height = static_cast<int>(((noiseVal + 1.0f) * 0.5f) * CHUNK_Y);
+
+            float nx = (float)worldX;
+            float nz = (float)worldZ;
+
+            // Искажаем координаты
+            warpNoise.DomainWarp(nx, nz);
+
+            // Континенты (0..1)
+            float continent = continentNoise.GetNoise(nx, nz) * 0.5f + 0.5f;
+            // Детали (-1..1)
+            float detail = detailNoise.GetNoise(nx, nz);
+
+            // Итоговая высота
+            float heightF = continent * 80.0f + detail * 15.0f;
+            int height = std::clamp((int)heightF, 0, CHUNK_Y - 1); //#include <algorithm>
 
             for (int y = 0; y < CHUNK_Y; ++y) {
                 if (y > height) {
-                    if (y <= 64) chunkData[x][y][z] = 4;
+                    if (y <= seaLevel) chunkData[x][y][z] = 4;
                     else chunkData[x][y][z] = 0; // air
                 }
                 else if (y == height) chunkData[x][y][z] = 1; // grass
