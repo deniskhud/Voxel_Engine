@@ -21,5 +21,3 @@
 ```bash
  g++ main.cpp glad/src/glad.c -Iglad/include block.cpp chunk.cpp world.cpp -lglfw -ldl -lGL -o main\
 
-```bash
-./main
